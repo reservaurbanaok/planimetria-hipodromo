@@ -1,0 +1,805 @@
+﻿<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hipodromo | Planimetria Arquitectonica Interactiva</title>
+  <style>
+    :root {
+      --bg-0: #0b0d10;
+      --bg-1: #111419;
+      --panel: #171b21;
+      --panel-2: #1e232b;
+      --ink: #f6f2e8;
+      --muted: #b6aea0;
+      --gold: #c7a45f;
+      --gold-soft: #f0dab0;
+      --line: #2a2f39;
+      --danger: #9c3a3a;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(1200px 500px at 10% -10%, rgba(199, 164, 95, 0.16), transparent 60%),
+        radial-gradient(800px 400px at 95% 0%, rgba(199, 164, 95, 0.08), transparent 70%),
+        var(--bg-0);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    .shell {
+      width: min(1320px, 96vw);
+      margin: 20px auto;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 22%), var(--bg-1);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(199,164,95,0.08), transparent 80%);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(1.05rem, 1.4vw, 1.4rem);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--gold-soft);
+      font-weight: 600;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    button, select {
+      border: 1px solid #3a3328;
+      background: linear-gradient(180deg, rgba(199,164,95,0.17), rgba(199,164,95,0.08));
+      color: var(--ink);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      font-size: 0.9rem;
+    }
+
+    button {
+      cursor: pointer;
+      transition: transform .18s ease, box-shadow .2s ease;
+    }
+
+    button:hover, button:focus-visible {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 18px rgba(199,164,95,0.25);
+      outline: none;
+    }
+
+    .page-select { display: none; }
+
+    .body-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      min-height: 620px;
+    }
+
+    .stage-wrap {
+      padding: 18px;
+      border-right: 1px solid var(--line);
+    }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 2518 / 705;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid #3c3528;
+      background: #0a0d11;
+    }
+
+    .plan-base {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background: #fff;
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .hotspot {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid #f8e7c2;
+      background: radial-gradient(circle at 40% 35%, #fff7df 0%, #d6af68 40%, #a37b39 100%);
+      box-shadow:
+        0 0 0 1px rgba(11,13,16,0.9),
+        0 0 0 7px rgba(199,164,95,0.20),
+        0 0 22px rgba(199,164,95,0.42);
+      cursor: pointer;
+      pointer-events: auto;
+      animation: pulse 2.8s ease-in-out infinite;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+    .hotspot:hover,
+    .hotspot:focus-visible {
+      transform: translate(-50%, -50%) scale(1.12);
+      box-shadow:
+        0 0 0 1px rgba(11,13,16,0.9),
+        0 0 0 8px rgba(199,164,95,0.3),
+        0 0 30px rgba(199,164,95,0.52);
+      outline: none;
+    }
+
+    .hotspot-label {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      margin-top: -18px;
+      padding: 4px 8px;
+      border-radius: 99px;
+      font: 600 11px/1 "Trebuchet MS", "Segoe UI", sans-serif;
+      letter-spacing: .03em;
+      color: #eee6d7;
+      background: rgba(11,13,16,0.78);
+      border: 1px solid rgba(199,164,95,0.33);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 1px rgba(11,13,16,0.9),0 0 0 6px rgba(199,164,95,0.16),0 0 18px rgba(199,164,95,0.32); }
+      50% { box-shadow: 0 0 0 1px rgba(11,13,16,0.9),0 0 0 10px rgba(199,164,95,0.26),0 0 34px rgba(199,164,95,0.5); }
+    }
+
+    .side {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      padding: 16px;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 12px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: rgba(12,14,18,0.65);
+    }
+
+    .small {
+      margin: 0;
+      color: var(--muted);
+      font: 0.86rem/1.45 "Trebuchet MS", "Segoe UI", sans-serif;
+    }
+
+    .zone-title {
+      margin: 0;
+      color: var(--gold-soft);
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .zone-cat {
+      margin: 6px 0 0;
+      color: #d8c8ac;
+      font: 600 0.77rem/1 "Trebuchet MS", "Segoe UI", sans-serif;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .zone-desc {
+      margin: 10px 0 0;
+      color: #d7d1c6;
+      font: 0.9rem/1.55 "Trebuchet MS", "Segoe UI", sans-serif;
+    }
+
+    .gallery {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #090b0f;
+      position: relative;
+      min-height: 290px;
+    }
+
+    .gallery img {
+      width: 100%;
+      aspect-ratio: 9/16;
+      object-fit: cover;
+      display: block;
+      opacity: 0;
+      animation: fadeIn .35s ease forwards;
+    }
+
+    .gallery-nav {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .gallery-nav button {
+      flex: 1;
+      padding: 6px 8px;
+      background: rgba(17,20,25,0.8);
+      border-color: rgba(199,164,95,0.5);
+    }
+
+    .thumbs {
+      margin-top: 10px;
+      display: grid;
+      gap: 6px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .thumb {
+      border: 1px solid #3c3326;
+      border-radius: 8px;
+      overflow: hidden;
+      aspect-ratio: 1/1;
+      cursor: pointer;
+      padding: 0;
+      background: #0c0f14;
+    }
+
+    .thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      filter: brightness(.82);
+    }
+
+    .thumb.active {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 1px rgba(199,164,95,.32);
+    }
+
+    .thumb.active img { filter: brightness(1); }
+
+    .editor-form {
+      display: grid;
+      gap: 8px;
+    }
+
+    .editor-form input,
+    .editor-form textarea {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid #3a3226;
+      background: #0f1318;
+      color: #f8f3e8;
+      padding: 8px;
+      font: 0.85rem/1.35 "Trebuchet MS", "Segoe UI", sans-serif;
+    }
+
+    .editor-row {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .danger {
+      background: linear-gradient(180deg, rgba(156,58,58,.35), rgba(156,58,58,.2));
+      border-color: rgba(156,58,58,.6);
+    }
+
+    .hidden { display: none !important; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(1.01); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @media (max-width: 1080px) {
+      .body-grid { grid-template-columns: 1fr; }
+      .stage-wrap { border-right: 0; border-bottom: 1px solid var(--line); }
+      .side { grid-template-rows: auto auto auto auto; }
+    }
+
+    @media (max-width: 640px) {
+      .topbar { grid-template-columns: 1fr; }
+      .actions { justify-content: flex-start; }
+      .thumbs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <h1>Hipodromo - Planimetria Arquitectonica Interactiva</h1>
+        <p>Hoja 1 activa. Hotspots premium con info + fotos, y editor de precision.</p>
+      </div>
+      <div class="actions">
+        <select id="pageSelect" class="page-select" aria-label="Seleccionar hoja del plano"></select>
+        <button id="toggleEditor" type="button">Activar modo edicion</button>
+        <button id="newHotspot" type="button" class="hidden">Nuevo hotspot</button>
+        <button id="copyJson" type="button">Copiar JSON</button>
+      </div>
+    </header>
+
+    <section class="body-grid">
+      <div class="stage-wrap">
+        <div class="stage" id="stage">
+          <img id="planFrame" class="plan-base" alt="Planimetria del hipodromo" src="./assets/plano-lp-hoja1.png" />
+          <div class="overlay" id="overlay"></div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="card">
+          <h2 class="zone-title" id="zoneTitle">Selecciona una zona</h2>
+          <p class="zone-cat" id="zoneCategory">VISOR</p>
+          <p class="zone-desc" id="zoneDescription">Hace clic en cualquier marcador del plano para abrir su ficha arquitectonica y galeria visual.</p>
+        </div>
+
+        <div class="gallery" id="galleryBox">
+          <img id="mainPhoto" alt="Fotografia del sector" src="" class="hidden" />
+          <div class="gallery-nav hidden" id="galleryNav">
+            <button type="button" id="prevPhoto">Anterior</button>
+            <button type="button" id="nextPhoto">Siguiente</button>
+          </div>
+        </div>
+
+        <div class="thumbs" id="thumbs"></div>
+
+        <div class="card">
+          <p class="small" id="helperText">Modo publico activo. En modo edicion podes mover puntos, actualizar datos y exportar coordenadas finales.</p>
+
+          <form class="editor-form hidden" id="editorForm" autocomplete="off">
+            <input id="fieldName" placeholder="Nombre de zona" />
+            <input id="fieldCategory" placeholder="Categoria (VIP, Ingreso, Salon...)" />
+            <textarea id="fieldDescription" rows="3" placeholder="Descripcion breve del sector"></textarea>
+            <input id="fieldPhotos" placeholder="Fotos separadas por coma" />
+            <div class="editor-row">
+              <button type="button" id="saveZone">Guardar cambios</button>
+              <button type="button" id="deleteZone" class="danger">Eliminar punto</button>
+            </div>
+          </form>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const PLAN_PAGES = [
+      {
+        id: "p1",
+        name: "Hoja 1",
+        file: "./assets/plano-lp-hoja1.png",
+        pdf: "./assets/plano-lp-hoja1.png",
+        active: true
+      },
+      {
+        id: "p2",
+        name: "Hoja 2 (future)",
+        file: "./assets/plano-hoja2.png",
+        pdf: "./assets/plano-lp-hoja1.png",
+        active: false
+      }
+    ];
+
+    const DEFAULT_HOTSPOTS = [
+      {
+        id: "vip-salon-principal",
+        pageId: "p1",
+        name: "VIP Salon Principal",
+        category: "VIP",
+        description: "Zona exclusiva de recepcion y permanencia premium con ambientacion nocturna y visuales panoramicas.",
+        x: 71.8,
+        y: 33.4,
+        photos: [
+          "./assets/images/vip-1.png",
+          "./assets/images/vip-2.png"
+        ]
+      },
+      {
+        id: "ingreso-salon",
+        pageId: "p1",
+        name: "Ingreso al Salon",
+        category: "Acceso",
+        description: "Acceso principal al sector interior, pensado para flujo de recepcion y primer impacto de marca.",
+        x: 14.8,
+        y: 78.5,
+        photos: [
+          "./assets/images/ingreso.png"
+        ]
+      },
+      {
+        id: "salon-principal",
+        pageId: "p1",
+        name: "Salon Principal",
+        category: "Salon",
+        description: "Ambiente central para servicio, eventos y montaje gastronómico, con alta capacidad operativa.",
+        x: 42.7,
+        y: 48.4,
+        photos: [
+          "./assets/images/salon-principal-1.png",
+          "./assets/images/salon-principal-2.png"
+        ]
+      },
+      {
+        id: "salon-bajo",
+        pageId: "p1",
+        name: "Salon Bajo",
+        category: "Salon",
+        description: "Sector complementario de uso flexible para reuniones, cocteleria o extensiones del evento principal.",
+        x: 81.4,
+        y: 67.9,
+        photos: [
+          "./assets/images/salon-bajo.png"
+        ]
+      }
+    ];
+
+    const STORAGE_KEY = "hipodromo_arquitectonico_hotspots_v1";
+    const state = {
+      editor: false,
+      selectedPage: "p1",
+      selectedHotspotId: null,
+      selectedPhotoIdx: 0,
+      hotspots: loadHotspots()
+    };
+
+    const els = {
+      frame: document.getElementById("planFrame"),
+      overlay: document.getElementById("overlay"),
+      stage: document.getElementById("stage"),
+      pageSelect: document.getElementById("pageSelect"),
+      toggleEditor: document.getElementById("toggleEditor"),
+      newHotspot: document.getElementById("newHotspot"),
+      copyJson: document.getElementById("copyJson"),
+      helperText: document.getElementById("helperText"),
+      zoneTitle: document.getElementById("zoneTitle"),
+      zoneCategory: document.getElementById("zoneCategory"),
+      zoneDescription: document.getElementById("zoneDescription"),
+      mainPhoto: document.getElementById("mainPhoto"),
+      galleryNav: document.getElementById("galleryNav"),
+      prevPhoto: document.getElementById("prevPhoto"),
+      nextPhoto: document.getElementById("nextPhoto"),
+      thumbs: document.getElementById("thumbs"),
+      editorForm: document.getElementById("editorForm"),
+      fieldName: document.getElementById("fieldName"),
+      fieldCategory: document.getElementById("fieldCategory"),
+      fieldDescription: document.getElementById("fieldDescription"),
+      fieldPhotos: document.getElementById("fieldPhotos"),
+      saveZone: document.getElementById("saveZone"),
+      deleteZone: document.getElementById("deleteZone")
+    };
+
+    function loadHotspots() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return structuredClone(DEFAULT_HOTSPOTS);
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : structuredClone(DEFAULT_HOTSPOTS);
+      } catch {
+        return structuredClone(DEFAULT_HOTSPOTS);
+      }
+    }
+
+    function saveHotspots() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.hotspots));
+    }
+
+    function getPage(pageId) {
+      return PLAN_PAGES.find(p => p.id === pageId) || PLAN_PAGES[0];
+    }
+
+    function bySelectedPage() {
+      return state.hotspots.filter(h => h.pageId === state.selectedPage);
+    }
+
+    function currentHotspot() {
+      return state.hotspots.find(h => h.id === state.selectedHotspotId) || null;
+    }
+
+    function setFramePage() {
+      const page = getPage(state.selectedPage);
+      els.frame.src = page.file;
+    }
+
+    function renderPageSelector() {
+      const visiblePages = PLAN_PAGES.filter(p => p.active);
+      els.pageSelect.innerHTML = "";
+      visiblePages.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.name;
+        els.pageSelect.appendChild(opt);
+      });
+      if (visiblePages.length > 1) {
+        els.pageSelect.classList.remove("page-select");
+      } else {
+        els.pageSelect.classList.add("page-select");
+      }
+      els.pageSelect.value = state.selectedPage;
+    }
+
+    function renderHotspots() {
+      els.overlay.innerHTML = "";
+      bySelectedPage().forEach(h => {
+        const btn = document.createElement("button");
+        btn.className = "hotspot";
+        btn.type = "button";
+        btn.style.left = `${h.x}%`;
+        btn.style.top = `${h.y}%`;
+        btn.title = h.name;
+        btn.setAttribute("aria-label", h.name);
+        btn.dataset.id = h.id;
+
+        btn.addEventListener("click", () => {
+          state.selectedHotspotId = h.id;
+          state.selectedPhotoIdx = 0;
+          renderInfo();
+          syncEditorFields();
+        });
+
+        if (state.editor) {
+          btn.draggable = true;
+          btn.addEventListener("dragstart", event => {
+            event.dataTransfer.setData("text/plain", h.id);
+          });
+        }
+
+        const label = document.createElement("div");
+        label.className = "hotspot-label";
+        label.style.left = `${h.x}%`;
+        label.style.top = `${h.y}%`;
+        label.textContent = h.name;
+
+        els.overlay.append(btn, label);
+      });
+    }
+
+    function renderInfo() {
+      const h = currentHotspot();
+      if (!h) {
+        els.zoneTitle.textContent = "Selecciona una zona";
+        els.zoneCategory.textContent = "VISOR";
+        els.zoneDescription.textContent = "Hace clic en cualquier marcador del plano para abrir su ficha arquitectonica y galeria visual.";
+        els.mainPhoto.classList.add("hidden");
+        els.galleryNav.classList.add("hidden");
+        els.thumbs.innerHTML = "";
+        return;
+      }
+
+      els.zoneTitle.textContent = h.name;
+      els.zoneCategory.textContent = h.category.toUpperCase();
+      els.zoneDescription.textContent = h.description;
+
+      const safeIdx = Math.max(0, Math.min(state.selectedPhotoIdx, h.photos.length - 1));
+      state.selectedPhotoIdx = safeIdx;
+
+      if (!h.photos.length) {
+        els.mainPhoto.classList.add("hidden");
+        els.galleryNav.classList.add("hidden");
+      } else {
+        els.mainPhoto.src = h.photos[safeIdx];
+        els.mainPhoto.classList.remove("hidden");
+        els.galleryNav.classList.toggle("hidden", h.photos.length < 2);
+      }
+
+      els.thumbs.innerHTML = "";
+      h.photos.forEach((src, idx) => {
+        const t = document.createElement("button");
+        t.className = `thumb${idx === safeIdx ? " active" : ""}`;
+        t.type = "button";
+        t.title = `Foto ${idx + 1}`;
+        t.innerHTML = `<img alt="Vista ${idx + 1} de ${h.name}" src="${src}">`;
+        t.addEventListener("click", () => {
+          state.selectedPhotoIdx = idx;
+          renderInfo();
+        });
+        els.thumbs.appendChild(t);
+      });
+    }
+
+    function syncEditorState() {
+      els.newHotspot.classList.toggle("hidden", !state.editor);
+      els.editorForm.classList.toggle("hidden", !state.editor);
+      els.helperText.textContent = state.editor
+        ? "Modo edicion activo. Arrastra marcadores para ajustar coordenadas."
+        : "Modo publico activo. En modo edicion podes mover puntos, actualizar datos y exportar coordenadas finales.";
+      els.toggleEditor.textContent = state.editor ? "Salir modo edicion" : "Activar modo edicion";
+      renderHotspots();
+      syncEditorFields();
+    }
+
+    function syncEditorFields() {
+      const h = currentHotspot();
+      if (!state.editor || !h) {
+        els.fieldName.value = "";
+        els.fieldCategory.value = "";
+        els.fieldDescription.value = "";
+        els.fieldPhotos.value = "";
+        return;
+      }
+      els.fieldName.value = h.name;
+      els.fieldCategory.value = h.category;
+      els.fieldDescription.value = h.description;
+      els.fieldPhotos.value = h.photos.join(", ");
+    }
+
+    function stageDropHandler(event) {
+      if (!state.editor) return;
+      event.preventDefault();
+      const id = event.dataTransfer.getData("text/plain");
+      const h = state.hotspots.find(item => item.id === id);
+      if (!h) return;
+
+      const rect = els.stage.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width) * 100;
+      const y = ((event.clientY - rect.top) / rect.height) * 100;
+      h.x = +Math.min(99.5, Math.max(0.5, x)).toFixed(2);
+      h.y = +Math.min(99.5, Math.max(0.5, y)).toFixed(2);
+      saveHotspots();
+      renderHotspots();
+      renderInfo();
+    }
+
+    function addHotspotAtCenter() {
+      const id = `zona-${Date.now()}`;
+      const newItem = {
+        id,
+        pageId: state.selectedPage,
+        name: "Nueva Zona",
+        category: "Sector",
+        description: "Descripcion de sector",
+        x: 50,
+        y: 50,
+        photos: []
+      };
+      state.hotspots.push(newItem);
+      state.selectedHotspotId = id;
+      state.selectedPhotoIdx = 0;
+      saveHotspots();
+      renderHotspots();
+      renderInfo();
+      syncEditorFields();
+    }
+
+    function saveCurrentHotspot() {
+      const h = currentHotspot();
+      if (!h) return;
+      h.name = (els.fieldName.value || "Zona sin nombre").trim();
+      h.category = (els.fieldCategory.value || "Sector").trim();
+      h.description = (els.fieldDescription.value || "Sin descripcion").trim();
+      h.photos = els.fieldPhotos.value
+        .split(",")
+        .map(v => v.trim())
+        .filter(Boolean);
+      saveHotspots();
+      renderHotspots();
+      renderInfo();
+    }
+
+    function deleteCurrentHotspot() {
+      const h = currentHotspot();
+      if (!h) return;
+      const ok = confirm(`Eliminar ${h.name}?`);
+      if (!ok) return;
+      state.hotspots = state.hotspots.filter(item => item.id !== h.id);
+      state.selectedHotspotId = bySelectedPage()[0]?.id || null;
+      state.selectedPhotoIdx = 0;
+      saveHotspots();
+      renderHotspots();
+      renderInfo();
+      syncEditorFields();
+    }
+
+    async function copyJson() {
+      const payload = state.hotspots.map(({ id, name, category, description, x, y, photos, pageId }) => ({
+        id, name, category, description, x, y, photos, pageId
+      }));
+      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+      const old = els.copyJson.textContent;
+      els.copyJson.textContent = "JSON copiado";
+      setTimeout(() => { els.copyJson.textContent = old; }, 1000);
+    }
+
+    function attachEvents() {
+      els.pageSelect.addEventListener("change", e => {
+        state.selectedPage = e.target.value;
+        setFramePage();
+        const first = bySelectedPage()[0] || null;
+        state.selectedHotspotId = first ? first.id : null;
+        state.selectedPhotoIdx = 0;
+        renderHotspots();
+        renderInfo();
+        syncEditorFields();
+      });
+
+      els.toggleEditor.addEventListener("click", () => {
+        state.editor = !state.editor;
+        syncEditorState();
+      });
+
+      els.newHotspot.addEventListener("click", addHotspotAtCenter);
+      els.copyJson.addEventListener("click", copyJson);
+      els.saveZone.addEventListener("click", saveCurrentHotspot);
+      els.deleteZone.addEventListener("click", deleteCurrentHotspot);
+
+      els.prevPhoto.addEventListener("click", () => {
+        const h = currentHotspot();
+        if (!h || h.photos.length < 2) return;
+        state.selectedPhotoIdx = (state.selectedPhotoIdx - 1 + h.photos.length) % h.photos.length;
+        renderInfo();
+      });
+
+      els.nextPhoto.addEventListener("click", () => {
+        const h = currentHotspot();
+        if (!h || h.photos.length < 2) return;
+        state.selectedPhotoIdx = (state.selectedPhotoIdx + 1) % h.photos.length;
+        renderInfo();
+      });
+
+      els.stage.addEventListener("dragover", e => {
+        if (!state.editor) return;
+        e.preventDefault();
+      });
+      els.stage.addEventListener("drop", stageDropHandler);
+
+      document.addEventListener("keydown", e => {
+        if (e.key === "Escape") {
+          state.selectedHotspotId = null;
+          state.selectedPhotoIdx = 0;
+          renderInfo();
+          syncEditorFields();
+        }
+      });
+    }
+
+    function init() {
+      renderPageSelector();
+      setFramePage();
+      state.selectedHotspotId = bySelectedPage()[0]?.id || null;
+      renderHotspots();
+      renderInfo();
+      syncEditorState();
+      attachEvents();
+    }
+
+    init();
+  </script>
+</body>
+</html>
+
+
