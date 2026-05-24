@@ -345,13 +345,10 @@
     <header class="topbar">
       <div class="brand">
         <h1>Hipodromo - Planimetria Arquitectonica Interactiva</h1>
-        <p>Hoja 1 activa. Hotspots premium con info + fotos, y editor de precision.</p>
+        <p>Hoja 1 activa. Hotspots premium con info + fotos.</p>
       </div>
       <div class="actions">
         <select id="pageSelect" class="page-select" aria-label="Seleccionar hoja del plano"></select>
-        <button id="toggleEditor" type="button">Activar modo edicion</button>
-        <button id="newHotspot" type="button" class="hidden">Nuevo hotspot</button>
-        <button id="copyJson" type="button">Copiar JSON</button>
       </div>
     </header>
 
@@ -381,18 +378,7 @@
         <div class="thumbs" id="thumbs"></div>
 
         <div class="card">
-          <p class="small" id="helperText">Modo publico activo. En modo edicion podes mover puntos, actualizar datos y exportar coordenadas finales.</p>
-
-          <form class="editor-form hidden" id="editorForm" autocomplete="off">
-            <input id="fieldName" placeholder="Nombre de zona" />
-            <input id="fieldCategory" placeholder="Categoria (VIP, Ingreso, Salon...)" />
-            <textarea id="fieldDescription" rows="3" placeholder="Descripcion breve del sector"></textarea>
-            <input id="fieldPhotos" placeholder="Fotos separadas por coma" />
-            <div class="editor-row">
-              <button type="button" id="saveZone">Guardar cambios</button>
-              <button type="button" id="deleteZone" class="danger">Eliminar punto</button>
-            </div>
-          </form>
+          <p class="small" id="helperText">Modo publico activo. La planimetria es solo de visualizacion.</p>
         </div>
       </aside>
     </section>
@@ -423,8 +409,8 @@
         name: "VIP Salon Principal",
         category: "VIP",
         description: "Zona exclusiva de recepcion y permanencia premium con ambientacion nocturna y visuales panoramicas.",
-        x: 71.8,
-        y: 33.4,
+        x: 74.46,
+        y: 44.92,
         photos: [
           "./assets/images/vip-1.png",
           "./assets/images/vip-2.png"
@@ -436,8 +422,8 @@
         name: "Ingreso al Salon",
         category: "Acceso",
         description: "Acceso principal al sector interior, pensado para flujo de recepcion y primer impacto de marca.",
-        x: 14.8,
-        y: 78.5,
+        x: 21.96,
+        y: 20.31,
         photos: [
           "./assets/images/ingreso.png"
         ]
@@ -448,8 +434,8 @@
         name: "Salon Principal",
         category: "Salon",
         description: "Ambiente central para servicio, eventos y montaje gastronómico, con alta capacidad operativa.",
-        x: 42.7,
-        y: 48.4,
+        x: 31.41,
+        y: 44.14,
         photos: [
           "./assets/images/salon-principal-1.png",
           "./assets/images/salon-principal-2.png"
@@ -461,8 +447,8 @@
         name: "Salon Bajo",
         category: "Salon",
         description: "Sector complementario de uso flexible para reuniones, cocteleria o extensiones del evento principal.",
-        x: 81.4,
-        y: 67.9,
+        x: 47.17,
+        y: 75.39,
         photos: [
           "./assets/images/salon-bajo.png"
         ]
@@ -475,7 +461,7 @@
       selectedPage: "p1",
       selectedHotspotId: null,
       selectedPhotoIdx: 0,
-      hotspots: loadHotspots()
+      hotspots: structuredClone(DEFAULT_HOTSPOTS)
     };
 
     const els = {
@@ -483,9 +469,6 @@
       overlay: document.getElementById("overlay"),
       stage: document.getElementById("stage"),
       pageSelect: document.getElementById("pageSelect"),
-      toggleEditor: document.getElementById("toggleEditor"),
-      newHotspot: document.getElementById("newHotspot"),
-      copyJson: document.getElementById("copyJson"),
       helperText: document.getElementById("helperText"),
       zoneTitle: document.getElementById("zoneTitle"),
       zoneCategory: document.getElementById("zoneCategory"),
@@ -495,24 +478,10 @@
       prevPhoto: document.getElementById("prevPhoto"),
       nextPhoto: document.getElementById("nextPhoto"),
       thumbs: document.getElementById("thumbs"),
-      editorForm: document.getElementById("editorForm"),
-      fieldName: document.getElementById("fieldName"),
-      fieldCategory: document.getElementById("fieldCategory"),
-      fieldDescription: document.getElementById("fieldDescription"),
-      fieldPhotos: document.getElementById("fieldPhotos"),
-      saveZone: document.getElementById("saveZone"),
-      deleteZone: document.getElementById("deleteZone")
     };
 
     function loadHotspots() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return structuredClone(DEFAULT_HOTSPOTS);
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : structuredClone(DEFAULT_HOTSPOTS);
-      } catch {
-        return structuredClone(DEFAULT_HOTSPOTS);
-      }
+      return structuredClone(DEFAULT_HOTSPOTS);
     }
 
     function saveHotspots() {
@@ -633,29 +602,13 @@
     }
 
     function syncEditorState() {
-      els.newHotspot.classList.toggle("hidden", !state.editor);
-      els.editorForm.classList.toggle("hidden", !state.editor);
-      els.helperText.textContent = state.editor
-        ? "Modo edicion activo. Arrastra marcadores para ajustar coordenadas."
-        : "Modo publico activo. En modo edicion podes mover puntos, actualizar datos y exportar coordenadas finales.";
-      els.toggleEditor.textContent = state.editor ? "Salir modo edicion" : "Activar modo edicion";
+      state.editor = false;
+      els.helperText.textContent = "Modo publico activo. La planimetria es solo de visualizacion.";
       renderHotspots();
-      syncEditorFields();
     }
 
     function syncEditorFields() {
-      const h = currentHotspot();
-      if (!state.editor || !h) {
-        els.fieldName.value = "";
-        els.fieldCategory.value = "";
-        els.fieldDescription.value = "";
-        els.fieldPhotos.value = "";
-        return;
-      }
-      els.fieldName.value = h.name;
-      els.fieldCategory.value = h.category;
-      els.fieldDescription.value = h.description;
-      els.fieldPhotos.value = h.photos.join(", ");
+      return;
     }
 
     function stageDropHandler(event) {
@@ -675,65 +628,6 @@
       renderInfo();
     }
 
-    function addHotspotAtCenter() {
-      const id = `zona-${Date.now()}`;
-      const newItem = {
-        id,
-        pageId: state.selectedPage,
-        name: "Nueva Zona",
-        category: "Sector",
-        description: "Descripcion de sector",
-        x: 50,
-        y: 50,
-        photos: []
-      };
-      state.hotspots.push(newItem);
-      state.selectedHotspotId = id;
-      state.selectedPhotoIdx = 0;
-      saveHotspots();
-      renderHotspots();
-      renderInfo();
-      syncEditorFields();
-    }
-
-    function saveCurrentHotspot() {
-      const h = currentHotspot();
-      if (!h) return;
-      h.name = (els.fieldName.value || "Zona sin nombre").trim();
-      h.category = (els.fieldCategory.value || "Sector").trim();
-      h.description = (els.fieldDescription.value || "Sin descripcion").trim();
-      h.photos = els.fieldPhotos.value
-        .split(",")
-        .map(v => v.trim())
-        .filter(Boolean);
-      saveHotspots();
-      renderHotspots();
-      renderInfo();
-    }
-
-    function deleteCurrentHotspot() {
-      const h = currentHotspot();
-      if (!h) return;
-      const ok = confirm(`Eliminar ${h.name}?`);
-      if (!ok) return;
-      state.hotspots = state.hotspots.filter(item => item.id !== h.id);
-      state.selectedHotspotId = bySelectedPage()[0]?.id || null;
-      state.selectedPhotoIdx = 0;
-      saveHotspots();
-      renderHotspots();
-      renderInfo();
-      syncEditorFields();
-    }
-
-    async function copyJson() {
-      const payload = state.hotspots.map(({ id, name, category, description, x, y, photos, pageId }) => ({
-        id, name, category, description, x, y, photos, pageId
-      }));
-      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
-      const old = els.copyJson.textContent;
-      els.copyJson.textContent = "JSON copiado";
-      setTimeout(() => { els.copyJson.textContent = old; }, 1000);
-    }
 
     function attachEvents() {
       els.pageSelect.addEventListener("change", e => {
@@ -746,16 +640,6 @@
         renderInfo();
         syncEditorFields();
       });
-
-      els.toggleEditor.addEventListener("click", () => {
-        state.editor = !state.editor;
-        syncEditorState();
-      });
-
-      els.newHotspot.addEventListener("click", addHotspotAtCenter);
-      els.copyJson.addEventListener("click", copyJson);
-      els.saveZone.addEventListener("click", saveCurrentHotspot);
-      els.deleteZone.addEventListener("click", deleteCurrentHotspot);
 
       els.prevPhoto.addEventListener("click", () => {
         const h = currentHotspot();
