@@ -338,6 +338,83 @@
       .actions { justify-content: flex-start; }
       .thumbs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     }
+
+
+    .renders {
+      border-top: 1px solid var(--line);
+      padding: 18px;
+      background: linear-gradient(180deg, rgba(199,164,95,0.04), transparent 60%);
+    }
+
+    .renders h3 {
+      margin: 0 0 10px;
+      color: var(--gold-soft);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 1rem;
+    }
+
+    .render-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .render-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(10,12,16,0.8);
+    }
+
+    .render-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      font: 600 0.86rem/1 "Trebuchet MS", "Segoe UI", sans-serif;
+      color: #e8dcc7;
+    }
+
+    .render-frame {
+      width: 100%;
+      height: 360px;
+      border: 0;
+      display: block;
+      background: #fff;
+    }
+
+    .render-link {
+      font: 600 0.78rem/1 "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--gold-soft);
+      text-decoration: none;
+      border: 1px solid #4f4127;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(199,164,95,0.08);
+    }
+
+    @media (max-width: 980px) {
+      .render-grid { grid-template-columns: 1fr; }
+      .render-frame { height: 300px; }
+    }
+
+  
+    .actions button.active-view {
+      box-shadow: 0 0 0 1px rgba(199,164,95,0.65), 0 6px 18px rgba(199,164,95,0.22);
+      background: linear-gradient(180deg, rgba(199,164,95,0.34), rgba(199,164,95,0.16));
+    }
+
+    .render-mode .overlay {
+      display: none;
+    }
+
+    .render-mode .stage {
+      aspect-ratio: 2000 / 994;
+    }
+
   </style>
 </head>
 <body>
@@ -345,9 +422,11 @@
     <header class="topbar">
       <div class="brand">
         <h1>Hipodromo - Planimetria Arquitectonica Interactiva</h1>
-        <p>Hoja 1 activa. Hotspots premium con info + fotos.</p>
+        <p>Vista integrada: Plano tecnico + Render comercial.</p>
       </div>
       <div class="actions">
+        <button id="viewPlan" type="button">Ver Plano</button>
+        <button id="viewRender" type="button">Ver Render</button>
         <select id="pageSelect" class="page-select" aria-label="Seleccionar hoja del plano"></select>
       </div>
     </header>
@@ -382,9 +461,17 @@
         </div>
       </aside>
     </section>
+
+
+
   </main>
 
   <script>
+    const VIEW_ASSETS = {
+      plan: "./assets/plano-lp-hoja1.png",
+      render: "./assets/render-vista-1.png"
+    };
+
     const PLAN_PAGES = [
       {
         id: "p1",
@@ -461,11 +548,14 @@
       selectedPage: "p1",
       selectedHotspotId: null,
       selectedPhotoIdx: 0,
+      currentView: "plan",
       hotspots: structuredClone(DEFAULT_HOTSPOTS)
     };
 
     const els = {
       frame: document.getElementById("planFrame"),
+      viewPlan: document.getElementById("viewPlan"),
+      viewRender: document.getElementById("viewRender"),
       overlay: document.getElementById("overlay"),
       stage: document.getElementById("stage"),
       pageSelect: document.getElementById("pageSelect"),
@@ -501,8 +591,18 @@
     }
 
     function setFramePage() {
+      if (state.currentView === "render") {
+        els.frame.src = VIEW_ASSETS.render;
+        document.body.classList.add("render-mode");
+        els.viewRender.classList.add("active-view");
+        els.viewPlan.classList.remove("active-view");
+        return;
+      }
       const page = getPage(state.selectedPage);
-      els.frame.src = page.file;
+      els.frame.src = VIEW_ASSETS.plan || page.file;
+      document.body.classList.remove("render-mode");
+      els.viewPlan.classList.add("active-view");
+      els.viewRender.classList.remove("active-view");
     }
 
     function renderPageSelector() {
@@ -524,6 +624,7 @@
 
     function renderHotspots() {
       els.overlay.innerHTML = "";
+      if (state.currentView === "render") return;
       bySelectedPage().forEach(h => {
         const btn = document.createElement("button");
         btn.className = "hotspot";
@@ -630,6 +731,18 @@
 
 
     function attachEvents() {
+      els.viewPlan.addEventListener("click", () => {
+        state.currentView = "plan";
+        setFramePage();
+        renderHotspots();
+      });
+
+      els.viewRender.addEventListener("click", () => {
+        state.currentView = "render";
+        setFramePage();
+        renderHotspots();
+      });
+
       els.pageSelect.addEventListener("change", e => {
         state.selectedPage = e.target.value;
         setFramePage();
